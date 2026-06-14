@@ -115,6 +115,7 @@ func main() {
 	flag.BoolVar(&migrationContext.InitiallyDropGhostTable, "initially-drop-ghost-table", false, "Drop a possibly existing Ghost table (remains from a previous run?) before beginning operation. Default is to panic and abort if such table exists")
 	flag.BoolVar(&migrationContext.TimestampOldTable, "timestamp-old-table", false, "Use a timestamp in old table name. This makes old table names unique and non conflicting cross migrations")
 	cutOver := flag.String("cut-over", "atomic", "choose cut-over type (default|atomic, two-step)")
+	useMigrationSchema := flag.Bool("use-migration-schema", false, fmt.Sprintf("create ghost/changelog/checkpoint tables in the '%s' schema and swap tables across schemas at cut-over (atomic cut-over only)", base.MigrationSchemaName))
 	flag.BoolVar(&migrationContext.ForceNamedCutOverCommand, "force-named-cut-over", false, "When true, the 'unpostpone|cut-over' interactive command must name the migrated table")
 	flag.BoolVar(&migrationContext.ForceNamedPanicCommand, "force-named-panic", false, "When true, the 'panic' interactive command must name the migrated table")
 
@@ -347,6 +348,15 @@ func main() {
 		migrationContext.CutOverType = base.CutOverTwoStep
 	default:
 		migrationContext.Log.Fatalf("Unknown cut-over: %s", *cutOver)
+	}
+	if *useMigrationSchema {
+		if migrationContext.CutOverType != base.CutOverAtomic {
+			migrationContext.Log.Fatalf("--use-migration-schema requires the atomic cut-over; remove --cut-over=two-step")
+		}
+		if migrationContext.Revert {
+			migrationContext.Log.Fatalf("--use-migration-schema is not supported together with revert")
+		}
+		migrationContext.GhostDatabaseName = base.MigrationSchemaName
 	}
 	if err := migrationContext.ReadConfigFile(); err != nil {
 		migrationContext.Log.Fatale(err)

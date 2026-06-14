@@ -260,11 +260,12 @@ func BuildRangePreparedComparison(columns *ColumnList, args []interface{}, compa
 	return BuildRangeComparison(columns.Names(), values, args, comparisonSign)
 }
 
-func BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName string, sharedColumns []string, mappedSharedColumns []string, uniqueKey string, uniqueKeyColumns *ColumnList, rangeStartValues, rangeEndValues []string, rangeStartArgs, rangeEndArgs []interface{}, includeRangeStartValues bool, transactionalTable bool, noWait bool) (result string, explodedArgs []interface{}, err error) {
+func BuildRangeInsertQuery(databaseName, ghostDatabaseName, originalTableName, ghostTableName string, sharedColumns []string, mappedSharedColumns []string, uniqueKey string, uniqueKeyColumns *ColumnList, rangeStartValues, rangeEndValues []string, rangeStartArgs, rangeEndArgs []interface{}, includeRangeStartValues bool, transactionalTable bool, noWait bool) (result string, explodedArgs []interface{}, err error) {
 	if len(sharedColumns) == 0 {
 		return "", explodedArgs, fmt.Errorf("got 0 shared columns in BuildRangeInsertQuery")
 	}
 	databaseName = EscapeName(databaseName)
+	ghostDatabaseName = EscapeName(ghostDatabaseName)
 	originalTableName = EscapeName(originalTableName)
 	ghostTableName = EscapeName(ghostTableName)
 
@@ -296,7 +297,7 @@ func BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName strin
 
 	if uniqueKeyColumns.Len() == 2 {
 		return buildRangeInsertQueryTwoColumn(
-			databaseName, originalTableName, ghostTableName,
+			databaseName, ghostDatabaseName, originalTableName, ghostTableName,
 			sharedColumnsListing, mappedSharedColumnsListing,
 			uniqueKey, uniqueKeyColumns,
 			rangeStartValues, rangeEndValues,
@@ -328,7 +329,7 @@ func BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName strin
 				(%s and %s)
 				%s
 		)`,
-		databaseName, originalTableName, databaseName, ghostTableName, mappedSharedColumnsListing,
+		databaseName, originalTableName, ghostDatabaseName, ghostTableName, mappedSharedColumnsListing,
 		sharedColumnsListing, databaseName, originalTableName, uniqueKey,
 		rangeStartComparison, rangeEndComparison, transactionalClause)
 	return result, explodedArgs, nil
@@ -342,7 +343,7 @@ func sameFirstColumnValue(rangeStartArgs, rangeEndArgs []interface{}) bool {
 }
 
 func buildRangeInsertQueryTwoColumn(
-	databaseName, originalTableName, ghostTableName string,
+	databaseName, ghostDatabaseName, originalTableName, ghostTableName string,
 	sharedColumnsListing, mappedSharedColumnsListing string,
 	uniqueKey string,
 	uniqueKeyColumns *ColumnList,
@@ -390,7 +391,7 @@ func buildRangeInsertQueryTwoColumn(
 					%s
 			)`,
 			databaseName, originalTableName,
-			databaseName, ghostTableName, mappedSharedColumnsListing,
+			ghostDatabaseName, ghostTableName, mappedSharedColumnsListing,
 			sharedColumnsListing,
 			databaseName, originalTableName, uniqueKey,
 			col1Name, col1StartVal, col2Name, col2StartOp, col2StartVal, col2Name, col2EndVal,
@@ -413,16 +414,16 @@ func buildRangeInsertQueryTwoColumn(
 		into %s.%s (%s)
 		%s union all %s union all %s`,
 		databaseName, originalTableName,
-		databaseName, ghostTableName, mappedSharedColumnsListing,
+		ghostDatabaseName, ghostTableName, mappedSharedColumnsListing,
 		part1, part2, part3,
 	)
 	return result, explodedArgs, nil
 }
 
-func BuildRangeInsertPreparedQuery(databaseName, originalTableName, ghostTableName string, sharedColumns []string, mappedSharedColumns []string, uniqueKey string, uniqueKeyColumns *ColumnList, rangeStartArgs, rangeEndArgs []interface{}, includeRangeStartValues bool, transactionalTable bool, noWait bool) (result string, explodedArgs []interface{}, err error) {
+func BuildRangeInsertPreparedQuery(databaseName, ghostDatabaseName, originalTableName, ghostTableName string, sharedColumns []string, mappedSharedColumns []string, uniqueKey string, uniqueKeyColumns *ColumnList, rangeStartArgs, rangeEndArgs []interface{}, includeRangeStartValues bool, transactionalTable bool, noWait bool) (result string, explodedArgs []interface{}, err error) {
 	rangeStartValues := buildColumnsPreparedValues(uniqueKeyColumns)
 	rangeEndValues := buildColumnsPreparedValues(uniqueKeyColumns)
-	return BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, includeRangeStartValues, transactionalTable, noWait)
+	return BuildRangeInsertQuery(databaseName, ghostDatabaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, includeRangeStartValues, transactionalTable, noWait)
 }
 
 func BuildUniqueKeyRangeEndPreparedQueryViaOffset(databaseName, tableName string, uniqueKeyColumns *ColumnList, rangeStartArgs, rangeEndArgs []interface{}, chunkSize int64, includeRangeStartValues bool, hint string) (result string, explodedArgs []interface{}, err error) {

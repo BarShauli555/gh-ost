@@ -43,6 +43,10 @@ const (
 	CutOverTwoStep
 )
 
+// MigrationSchemaName is the fixed schema into which ghost/changelog/checkpoint
+// tables are created when --use-migration-schema is enabled.
+const MigrationSchemaName = "ghost_migration_schema"
+
 type ThrottleReasonHint string
 
 const (
@@ -81,6 +85,7 @@ type MigrationContext struct {
 	Uuid string
 
 	DatabaseName          string
+	GhostDatabaseName     string
 	OriginalTableName     string
 	AlterStatement        string
 	AlterStatementOptions string // anything following the 'ALTER TABLE [schema.]table' from AlterStatement
@@ -379,6 +384,16 @@ func (mctx *MigrationContext) GetGhostTableName() string {
 	} else {
 		return getSafeTableName(mctx.OriginalTableName, "gho")
 	}
+}
+
+// GetGhostDatabaseName returns the schema in which the ghost, changelog,
+// checkpoint and "old" tables live. When --use-migration-schema is not set this
+// equals DatabaseName, preserving the original single-schema behavior.
+func (mctx *MigrationContext) GetGhostDatabaseName() string {
+	if mctx.GhostDatabaseName != "" {
+		return mctx.GhostDatabaseName
+	}
+	return mctx.DatabaseName
 }
 
 // GetOldTableName generates the name of the "old" table, into which the original table is renamed.

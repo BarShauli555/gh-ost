@@ -333,3 +333,19 @@ Makes the _old_ table include a timestamp value. The _old_ table is what the ori
 ### tungsten
 
 See [`tungsten`](cheatsheet.md#tungsten) on the cheatsheet.
+
+### use-migration-schema
+
+When provided, gh-ost creates the ghost, changelog and checkpoint tables in a
+dedicated `ghost_migration_schema` database instead of alongside the original
+table. At cut-over the tables are swapped across schemas: the migrated table is
+renamed into the original schema and the original table is moved into
+`ghost_migration_schema` as the `_del` table.
+
+Requirements and limitations:
+
+- The `ghost_migration_schema` database must already exist; gh-ost does not create it.
+- The migration user needs `CREATE`/`ALTER`/`DROP`/`INSERT`/`SELECT`/`LOCK` privileges on both the original schema and `ghost_migration_schema`.
+- Only the atomic cut-over is supported; combining with `--cut-over=two-step` is rejected.
+- Not supported together with revert operations.
+- Downstream replicas must also have the `ghost_migration_schema` database present.

@@ -298,7 +298,7 @@ func (apl *Applier) releaseMigrationLock() {
 
 func (apl *Applier) prepareQueries() (err error) {
 	if apl.dmlDeleteQueryBuilder, err = sql.NewDMLDeleteQueryBuilder(
-		apl.migrationContext.DatabaseName,
+		apl.migrationContext.GetGhostDatabaseName(),
 		apl.migrationContext.GetGhostTableName(),
 		apl.migrationContext.OriginalTableColumns,
 		&apl.migrationContext.UniqueKey.Columns,
@@ -306,7 +306,7 @@ func (apl *Applier) prepareQueries() (err error) {
 		return err
 	}
 	if apl.dmlInsertQueryBuilder, err = sql.NewDMLInsertQueryBuilder(
-		apl.migrationContext.DatabaseName,
+		apl.migrationContext.GetGhostDatabaseName(),
 		apl.migrationContext.GetGhostTableName(),
 		apl.migrationContext.OriginalTableColumns,
 		apl.migrationContext.SharedColumns,
@@ -315,7 +315,7 @@ func (apl *Applier) prepareQueries() (err error) {
 		return err
 	}
 	if apl.dmlUpdateQueryBuilder, err = sql.NewDMLUpdateQueryBuilder(
-		apl.migrationContext.DatabaseName,
+		apl.migrationContext.GetGhostDatabaseName(),
 		apl.migrationContext.GetGhostTableName(),
 		apl.migrationContext.OriginalTableColumns,
 		apl.migrationContext.SharedColumns,
@@ -326,7 +326,7 @@ func (apl *Applier) prepareQueries() (err error) {
 	}
 	if apl.migrationContext.Checkpoint {
 		if apl.checkpointInsertQueryBuilder, err = sql.NewCheckpointQueryBuilder(
-			apl.migrationContext.DatabaseName,
+			apl.migrationContext.GetGhostDatabaseName(),
 			apl.migrationContext.GetCheckpointTableName(),
 			&apl.migrationContext.UniqueKey.Columns,
 		); err != nil {
@@ -389,7 +389,7 @@ func (apl *Applier) readTableColumns() (err error) {
 
 // showTableStatus returns the output of `show table status like '...'` command
 func (apl *Applier) showTableStatus(tableName string) (rowMap sqlutils.RowMap) {
-	query := fmt.Sprintf(`show /* gh-ost */ table status from %s like '%s'`, sql.EscapeName(apl.migrationContext.DatabaseName), tableName)
+	query := fmt.Sprintf(`show /* gh-ost */ table status from %s like '%s'`, sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()), tableName)
 	sqlutils.QueryRowsMap(apl.db, query, func(m sqlutils.RowMap) error {
 		rowMap = m
 		return nil
@@ -403,9 +403,28 @@ func (apl *Applier) tableExists(tableName string) (tableFound bool) {
 	return (m != nil)
 }
 
+// schemaExists checks whether a given schema (database) exists on the applier.
+func (apl *Applier) schemaExists(schemaName string) (bool, error) {
+	query := `select /* gh-ost */ count(*) from information_schema.schemata where schema_name = ?`
+	var count int
+	if err := apl.db.QueryRow(query, schemaName).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // ValidateOrDropExistingTables verifies ghost and changelog tables do not exist,
 // or attempts to drop them if instructed to.
 func (apl *Applier) ValidateOrDropExistingTables() error {
+	if apl.migrationContext.GhostDatabaseName != "" {
+		exists, err := apl.schemaExists(apl.migrationContext.GhostDatabaseName)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("migration schema %s does not exist; create it before running gh-ost with --use-migration-schema", sql.EscapeName(apl.migrationContext.GhostDatabaseName))
+		}
+	}
 	if apl.migrationContext.InitiallyDropGhostTable {
 		if err := apl.DropGhostTable(); err != nil {
 			return err
@@ -487,13 +506,13 @@ func retryOnLockWaitTimeout(operation func() error, maxRetries int64, logger bas
 // CreateGhostTable creates the ghost table on the applier host
 func (apl *Applier) CreateGhostTable() error {
 	query := fmt.Sprintf(`create /* gh-ost */ table %s.%s like %s.%s`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),
 	)
 	apl.migrationContext.Log.Infof("Creating ghost table %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 	)
 
@@ -528,12 +547,12 @@ func (apl *Applier) CreateGhostTable() error {
 // AlterGhost applies `alter` statement on ghost table
 func (apl *Applier) AlterGhost() error {
 	query := fmt.Sprintf(`alter /* gh-ost */ table %s.%s %s`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 		apl.migrationContext.AlterStatementOptions,
 	)
 	apl.migrationContext.Log.Infof("Altering ghost table %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 	)
 	apl.migrationContext.Log.Debugf("ALTER statement: %s", query)
@@ -569,12 +588,12 @@ func (apl *Applier) AlterGhost() error {
 // AlterGhost applies `alter` statement on ghost table
 func (apl *Applier) AlterGhostAutoIncrement() error {
 	query := fmt.Sprintf(`alter /* gh-ost */ table %s.%s AUTO_INCREMENT=%d`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 		apl.migrationContext.OriginalTableAutoIncrement,
 	)
 	apl.migrationContext.Log.Infof("Altering ghost table AUTO_INCREMENT value %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 	)
 	apl.migrationContext.Log.Debugf("AUTO_INCREMENT ALTER statement: %s", query)
@@ -598,12 +617,12 @@ func (apl *Applier) CreateChangelogTable() error {
 			primary key(id),
 			unique key hint_uidx(hint)
 		) auto_increment=256 comment='%s'`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetChangelogTableName()),
 		GhostChangelogTableComment,
 	)
 	apl.migrationContext.Log.Infof("Creating changelog table %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetChangelogTableName()),
 	)
 	if _, err := sqlutils.ExecNoPrepare(apl.db, query); err != nil {
@@ -645,7 +664,7 @@ func (apl *Applier) CreateCheckpointTable() error {
 	}
 
 	query := fmt.Sprintf("create /* gh-ost */ table %s.%s (\n %s\n)",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetCheckpointTableName()),
 		strings.Join(colDefs, ",\n "),
 	)
@@ -659,11 +678,11 @@ func (apl *Applier) CreateCheckpointTable() error {
 // dropTable drops a given table on the applied host
 func (apl *Applier) dropTable(tableName string) error {
 	query := fmt.Sprintf(`drop /* gh-ost */ table if exists %s.%s`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(tableName),
 	)
 	apl.migrationContext.Log.Infof("Dropping table %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(tableName),
 	)
 	if _, err := sqlutils.ExecNoPrepare(apl.db, query); err != nil {
@@ -793,7 +812,7 @@ func (apl *Applier) WriteChangelog(hint, value string) (string, error) {
 		on duplicate key update
 			last_update=NOW(),
 			value=VALUES(value)`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetChangelogTableName()),
 	)
 	_, err := sqlutils.ExecNoPrepare(apl.db, query, explicitId, hint, value)
@@ -828,7 +847,7 @@ func (apl *Applier) WriteCheckpoint(chk *Checkpoint) (int64, error) {
 }
 
 func (apl *Applier) ReadLastCheckpoint() (*Checkpoint, error) {
-	row := apl.db.QueryRow(fmt.Sprintf(`select /* gh-ost */ * from %s.%s order by gh_ost_chk_id desc limit 1`, sql.EscapeName(apl.migrationContext.DatabaseName), sql.EscapeName(apl.migrationContext.GetCheckpointTableName())))
+	row := apl.db.QueryRow(fmt.Sprintf(`select /* gh-ost */ * from %s.%s order by gh_ost_chk_id desc limit 1`, sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()), sql.EscapeName(apl.migrationContext.GetCheckpointTableName())))
 	chk := &Checkpoint{
 		IterationRangeMin: sql.NewColumnValues(apl.migrationContext.UniqueKey.Columns.Len()),
 		IterationRangeMax: sql.NewColumnValues(apl.migrationContext.UniqueKey.Columns.Len()),
@@ -1077,6 +1096,7 @@ func (apl *Applier) ApplyIterationInsertQuery() (chunkSize int64, rowsAffected i
 
 	query, explodedArgs, err := sql.BuildRangeInsertPreparedQuery(
 		apl.migrationContext.DatabaseName,
+		apl.migrationContext.GetGhostDatabaseName(),
 		apl.migrationContext.OriginalTableName,
 		apl.migrationContext.GetGhostTableName(),
 		apl.migrationContext.SharedColumns.Names(),
@@ -1415,13 +1435,13 @@ func (apl *Applier) CreateAtomicCutOverSentryTable() error {
 		create /* gh-ost */ table %s.%s (
 			id int auto_increment primary key
 		) engine=%s comment='%s'`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(tableName),
 		apl.migrationContext.TableEngine,
 		atomicCutOverMagicHint,
 	)
 	apl.migrationContext.Log.Infof("Creating magic cut-over table %s.%s",
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(tableName),
 	)
 	if _, err := sqlutils.ExecNoPrepare(apl.db, query); err != nil {
@@ -1507,13 +1527,13 @@ func (apl *Applier) AtomicCutOverMagicLock(sessionIdChan chan int64, tableLocked
 	query = fmt.Sprintf(`lock /* gh-ost */ tables %s.%s write, %s.%s write`,
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetOldTableName()),
 	)
 	apl.migrationContext.Log.Infof("Locking %s.%s, %s.%s",
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetOldTableName()),
 	)
 	apl.migrationContext.LockTablesStartTime = time.Now()
@@ -1536,7 +1556,7 @@ func (apl *Applier) AtomicCutOverMagicLock(sessionIdChan chan int64, tableLocked
 	// And in fact, we will:
 	apl.migrationContext.Log.Infof("Dropping magic cut-over table")
 	query = fmt.Sprintf(`drop /* gh-ost */ table if exists %s.%s`,
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetOldTableName()),
 	)
 
@@ -1563,7 +1583,7 @@ func (apl *Applier) AtomicCutOverMagicLock(sessionIdChan chan int64, tableLocked
 	apl.migrationContext.Log.Infof("Releasing lock from %s.%s, %s.%s",
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetOldTableName()),
 	)
 	query = `unlock /* gh-ost */ tables`
@@ -1602,9 +1622,9 @@ func (apl *Applier) AtomicCutoverRename(sessionIdChan chan int64, tablesRenamed 
 	query = fmt.Sprintf(`rename /* gh-ost */ table %s.%s to %s.%s, %s.%s to %s.%s`,
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetOldTableName()),
-		sql.EscapeName(apl.migrationContext.DatabaseName),
+		sql.EscapeName(apl.migrationContext.GetGhostDatabaseName()),
 		sql.EscapeName(apl.migrationContext.GetGhostTableName()),
 		sql.EscapeName(apl.migrationContext.DatabaseName),
 		sql.EscapeName(apl.migrationContext.OriginalTableName),

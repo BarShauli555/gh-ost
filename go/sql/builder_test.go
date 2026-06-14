@@ -171,7 +171,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3}
 		rangeEndArgs := []interface{}{103}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -200,7 +200,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -222,7 +222,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{3, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -249,7 +249,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, false, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, false, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -271,7 +271,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, false, false)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, false, false)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -293,7 +293,7 @@ func TestBuildRangeInsertQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, false)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, false)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -322,7 +322,7 @@ func TestBuildRangeInsertQueryRenameMap(t *testing.T) {
 		rangeStartArgs := []interface{}{3}
 		rangeEndArgs := []interface{}{103}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -351,7 +351,7 @@ func TestBuildRangeInsertQueryRenameMap(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, mappedSharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -366,6 +366,28 @@ func TestBuildRangeInsertQueryRenameMap(t *testing.T) {
 	}
 }
 
+func TestBuildRangeInsertQueryCrossSchema(t *testing.T) {
+	originalDatabaseName := "mydb"
+	ghostDatabaseName := "ghost_migration_schema"
+	originalTableName := "tbl"
+	ghostTableName := "ghost"
+	sharedColumns := []string{"id", "name"}
+	uniqueKey := "PRIMARY"
+	uniqueKeyColumns := NewColumnList([]string{"id"})
+	rangeStartValues := []string{"@v1s"}
+	rangeEndValues := []string{"@v1e"}
+	rangeStartArgs := []interface{}{3}
+	rangeEndArgs := []interface{}{103}
+
+	query, _, err := BuildRangeInsertQuery(originalDatabaseName, ghostDatabaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartValues, rangeEndValues, rangeStartArgs, rangeEndArgs, true, true, true)
+	require.NoError(t, err)
+	// INSERT target must be the ghost schema; SELECT source must be the original schema.
+	require.Contains(t, query, "`ghost_migration_schema`.`ghost`")
+	require.Contains(t, query, "`mydb`.`tbl`")
+	// The ghost table must NOT be referenced under the original schema.
+	require.NotContains(t, query, "`mydb`.`ghost`")
+}
+
 func TestBuildRangeInsertPreparedQuery(t *testing.T) {
 	databaseName := "mydb"
 	originalTableName := "tbl"
@@ -377,7 +399,7 @@ func TestBuildRangeInsertPreparedQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{103, 117}
 
-		query, explodedArgs, err := BuildRangeInsertPreparedQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertPreparedQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -397,7 +419,7 @@ func TestBuildRangeInsertPreparedQuery(t *testing.T) {
 		rangeStartArgs := []interface{}{3, 17}
 		rangeEndArgs := []interface{}{3, 117}
 
-		query, explodedArgs, err := BuildRangeInsertPreparedQuery(databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartArgs, rangeEndArgs, true, true, true)
+		query, explodedArgs, err := BuildRangeInsertPreparedQuery(databaseName, databaseName, originalTableName, ghostTableName, sharedColumns, sharedColumns, uniqueKey, uniqueKeyColumns, rangeStartArgs, rangeEndArgs, true, true, true)
 		require.NoError(t, err)
 		expected := `
 			insert /* gh-ost mydb.tbl */ ignore
@@ -670,7 +692,7 @@ func TestBuildRangeInsertQueryTwoColumnGuards(t *testing.T) {
 
 	call := func(rangeStartValues, rangeEndValues []string, rangeStartArgs, rangeEndArgs []interface{}) error {
 		_, _, err := buildRangeInsertQueryTwoColumn(
-			databaseName, originalTableName, ghostTableName,
+			databaseName, databaseName, originalTableName, ghostTableName,
 			sharedColumnsListing, sharedColumnsListing,
 			uniqueKey, uniqueKeyColumns,
 			rangeStartValues, rangeEndValues,

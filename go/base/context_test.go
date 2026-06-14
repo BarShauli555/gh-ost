@@ -61,6 +61,20 @@ func TestGetTableNames(t *testing.T) {
 	}
 }
 
+func TestGetGhostDatabaseName(t *testing.T) {
+	t.Run("defaults to DatabaseName when unset", func(t *testing.T) {
+		context := NewMigrationContext()
+		context.DatabaseName = "mydb"
+		require.Equal(t, "mydb", context.GetGhostDatabaseName())
+	})
+	t.Run("returns GhostDatabaseName when set", func(t *testing.T) {
+		context := NewMigrationContext()
+		context.DatabaseName = "mydb"
+		context.GhostDatabaseName = "ghost_migration_schema"
+		require.Equal(t, "ghost_migration_schema", context.GetGhostDatabaseName())
+	})
+}
+
 func TestGetTriggerNames(t *testing.T) {
 	{
 		context := NewMigrationContext()

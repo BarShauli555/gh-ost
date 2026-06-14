@@ -187,7 +187,7 @@ func (isp *Inspector) inspectOriginalAndGhostTables() (err error) {
 	// the `getTableColumns()` function, but it's a later patch and introduces some complexity; I feel
 	// comfortable in doing this as a separate step.
 	isp.applyColumnTypes(isp.migrationContext.DatabaseName, isp.migrationContext.OriginalTableName, isp.migrationContext.OriginalTableColumns, isp.migrationContext.SharedColumns, &isp.migrationContext.UniqueKey.Columns)
-	isp.applyColumnTypes(isp.migrationContext.DatabaseName, isp.migrationContext.GetGhostTableName(), isp.migrationContext.GhostTableColumns, isp.migrationContext.MappedSharedColumns)
+	isp.applyColumnTypes(isp.migrationContext.GetGhostDatabaseName(), isp.migrationContext.GetGhostTableName(), isp.migrationContext.GhostTableColumns, isp.migrationContext.MappedSharedColumns)
 
 	for i := range isp.migrationContext.SharedColumns.Columns() {
 		column := isp.migrationContext.SharedColumns.Columns()[i]
